@@ -981,3 +981,34 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+.dashboard-date-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard-empty {
+  padding: 30px 22px;
+  color: #64748b;
+  text-align: center;
+}
+
+.dashboard-empty h3 {
+  margin: 14px 0 8px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.dashboard-empty p {
+  margin: 0 0 20px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-date-actions {
+    align-items: flex-start;
+  }
+}
