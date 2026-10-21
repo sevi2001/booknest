@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { BookOpen, Search, X, Plus, Pencil, Trash2 } from 'lucide-react';
+import { readLoans } from './loanStore';
 
 const categories = [
   'Self Development',
@@ -100,7 +101,8 @@ function isBook(value: unknown): value is Book {
   );
 }
 
-function loadBooks(): Book[] {
+function loadStoredBooks(): Book[] {
+  
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === null) return initialBooks;
@@ -126,6 +128,28 @@ function emptyForm(): BookForm {
     available: true,
     color: '#dbeafe',
   };
+}
+function loadBooks(): Book[] {
+  const books = loadStoredBooks();
+
+  try {
+    const activeLoans = readLoans().filter(
+      (loan) => loan.returnedOn === null,
+    );
+
+    return books.map((book) => ({
+      ...book,
+      available:
+        book.available &&
+        !activeLoans.some((loan) => loan.bookId === book.id),
+    }));
+  } catch {
+    // Disable book changes if borrowing records cannot be checked.
+    return books.map((book) => ({
+      ...book,
+      available: false,
+    }));
+  }
 }
 
 function BooksPage() {
@@ -158,7 +182,28 @@ function BooksPage() {
   // Save before updating the UI so failed saves are reported accurately.
   function saveCollection(nextBooks: Book[], successMessage: string) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBooks));
+           const activeLoans = readLoans().filter(
+        (loan) => loan.returnedOn === null,
+      );
+
+      const storedBooks = loadStoredBooks();
+
+      const booksToStore = nextBooks.map((book) => {
+        const hasActiveLoan = activeLoans.some(
+          (loan) => loan.bookId === book.id,
+        );
+
+        const original = storedBooks.find(
+          (item) => item.id === book.id,
+        );
+
+        // Keep loan availability separate from the stored book record.
+        return hasActiveLoan
+          ? { ...book, available: original?.available ?? true }
+          : book;
+      });
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(booksToStore));
       setBooks(nextBooks);
       setMessage(successMessage);
       return true;

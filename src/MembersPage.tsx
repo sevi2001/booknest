@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Plus, Search, Pencil, Trash2, X, Users } from 'lucide-react';
+import { readLoans } from './loanStore';
 
 type Member = {
   id: string;
@@ -179,6 +180,20 @@ function MembersPage() {
 
   function deleteMember(member: Member) {
     if (!window.confirm(`Delete member "${member.name}"?`)) return;
+        try {
+      const hasActiveLoans = readLoans().some(
+        (loan) =>
+          loan.memberId === member.id && loan.returnedOn === null,
+      );
+
+      if (hasActiveLoans) {
+        setMessage('Return this member’s borrowed books before deleting them.');
+        return;
+      }
+    } catch {
+      setMessage('Could not check loan records. Member was not deleted.');
+      return;
+    }
 
     saveMembers(
       members.filter((item) => item.id !== member.id),

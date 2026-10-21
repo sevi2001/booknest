@@ -938,3 +938,46 @@ tbody tr:last-child td {
 .member-actions button {
   padding: 8px 10px;
 }
+
+.issue-panel {
+  margin-bottom: 24px;
+}
+
+.issue-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 22px 22px;
+}
+
+.issue-full-width {
+  grid-column: 1 / -1;
+}
+
+.loan-error {
+  margin-bottom: 20px;
+}
+
+.loan-filter {
+  padding: 9px 12px;
+  border: 1px solid #dce3dd;
+  border-radius: 7px;
+  color: #334155;
+  background: #fff;
+  font-size: 12px;
+}
+
+.returned-date {
+  color: #64748b;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .issue-form {
+    grid-template-columns: 1fr;
+  }
+}

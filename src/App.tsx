@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import BooksPage from './BooksPage';
 import MembersPage from './MembersPage';
+import BorrowReturnPage from './BorrowReturnPage';
 import {
   BookOpen,
   LayoutDashboard,
@@ -316,8 +317,10 @@ function App() {
             </>
                       ) : activePage === 'Books' ? (
             <BooksPage />
-          ) : activePage === 'Members' ? (
+                    ) : activePage === 'Members' ? (
             <MembersPage />
+          ) : activePage === 'Borrow & Return' ? (
+            <BorrowReturnPage />
           ) : (
             <section className="panel placeholder-page">
               <div className="placeholder-icon">
