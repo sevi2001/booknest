@@ -790,3 +790,110 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.catalogue-message {
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #334155;
+  background: #fff;
+  font-size: 13px;
+}
+
+.book-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.book-card-actions button {
+  flex: 1;
+  padding: 10px 8px;
+}
+
+.danger-button {
+  padding: 11px 17px;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  color: #b91c1c;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.danger-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.book-form {
+  display: grid;
+  gap: 17px;
+}
+
+.book-form label {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.book-form input,
+.book-form select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #dce3dd;
+  border-radius: 7px;
+  color: #0f172a;
+  background: #fff;
+  font-size: 13px;
+}
+
+.book-form input:focus-visible,
+.book-form select:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
+.book-form input[type='color'] {
+  height: 44px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.form-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-error {
+  margin: 0;
+  padding: 10px;
+  border-radius: 6px;
+  color: #b91c1c;
+  background: #fef2f2;
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

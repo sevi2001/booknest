@@ -1,10 +1,18 @@
-import { useState } from 'react';
-import { BookOpen, Search, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { BookOpen, Search, X, Plus, Pencil, Trash2 } from 'lucide-react';
 
-type Category = 'Self Development' | 'Technology' | 'Finance' | 'Fiction';
+const categories = [
+  'Self Development',
+  'Technology',
+  'Finance',
+  'Fiction',
+] as const;
+
+type Category = (typeof categories)[number];
 
 type Book = {
-  id: number;
+  id: string;
   title: string;
   author: string;
   category: Category;
@@ -13,9 +21,13 @@ type Book = {
   color: string;
 };
 
-const books: Book[] = [
+type BookForm = Omit<Book, 'id'>;
+
+const STORAGE_KEY = 'booknest-books-v1';
+
+const initialBooks: Book[] = [
   {
-    id: 1,
+    id: '1',
     title: 'Atomic Habits',
     author: 'James Clear',
     category: 'Self Development',
@@ -24,7 +36,7 @@ const books: Book[] = [
     color: '#eee3cb',
   },
   {
-    id: 2,
+    id: '2',
     title: 'Clean Code',
     author: 'Robert C. Martin',
     category: 'Technology',
@@ -33,7 +45,7 @@ const books: Book[] = [
     color: '#dbeafe',
   },
   {
-    id: 3,
+    id: '3',
     title: 'The Psychology of Money',
     author: 'Morgan Housel',
     category: 'Finance',
@@ -42,7 +54,7 @@ const books: Book[] = [
     color: '#dcebe2',
   },
   {
-    id: 4,
+    id: '4',
     title: 'The Hobbit',
     author: 'J. R. R. Tolkien',
     category: 'Fiction',
@@ -51,7 +63,7 @@ const books: Book[] = [
     color: '#e5e7c8',
   },
   {
-    id: 5,
+    id: '5',
     title: 'The Great Gatsby',
     author: 'F. Scott Fitzgerald',
     category: 'Fiction',
@@ -60,7 +72,7 @@ const books: Book[] = [
     color: '#ede9fe',
   },
   {
-    id: 6,
+    id: '6',
     title: 'The Pragmatic Programmer',
     author: 'David Thomas and Andrew Hunt',
     category: 'Technology',
@@ -70,26 +82,196 @@ const books: Book[] = [
   },
 ];
 
-const categories: Category[] = [
-  'Self Development',
-  'Technology',
-  'Finance',
-  'Fiction',
-];
+function isBook(value: unknown): value is Book {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const book = value as Record<string, unknown>;
+
+  return (
+    typeof book.id === 'string' &&
+    typeof book.title === 'string' &&
+    typeof book.author === 'string' &&
+    typeof book.category === 'string' &&
+    categories.some((category) => category === book.category) &&
+    typeof book.isbn === 'string' &&
+    typeof book.available === 'boolean' &&
+    typeof book.color === 'string' &&
+    /^#[0-9a-f]{6}$/i.test(book.color)
+  );
+}
+
+function loadBooks(): Book[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === null) return initialBooks;
+
+    const parsed: unknown = JSON.parse(saved);
+
+    if (Array.isArray(parsed) && parsed.every(isBook)) {
+      return parsed;
+    }
+  } catch {
+    // Fall back to sample books if saved data cannot be read.
+  }
+
+  return initialBooks;
+}
+
+function emptyForm(): BookForm {
+  return {
+    title: '',
+    author: '',
+    category: 'Technology',
+    isbn: '',
+    available: true,
+    color: '#dbeafe',
+  };
+}
 
 function BooksPage() {
+  const [books, setBooks] = useState<Book[]>(loadBooks);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [availability, setAvailability] = useState('All');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<BookForm>(emptyForm);
+  const [formError, setFormError] = useState('');
+  const [message, setMessage] = useState('');
+
+  const detailsRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (selectedBook && detailsRef.current && !detailsRef.current.open) {
+      detailsRef.current.showModal();
+    }
+  }, [selectedBook]);
+
+  useEffect(() => {
+    if (formOpen && formRef.current && !formRef.current.open) {
+      formRef.current.showModal();
+    }
+  }, [formOpen]);
+
+  // Save before updating the UI so failed saves are reported accurately.
+  function saveCollection(nextBooks: Book[], successMessage: string) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBooks));
+      setBooks(nextBooks);
+      setMessage(successMessage);
+      return true;
+    } catch {
+      setMessage('Could not save changes. Please check your browser storage.');
+      return false;
+    }
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setCategory('All');
+    setAvailability('All');
+  }
+
+  function openAddForm() {
+    setEditingId(null);
+    setForm(emptyForm());
+    setFormError('');
+    setFormOpen(true);
+  }
+
+  function openEditForm(book: Book) {
+    setSelectedBook(null);
+    setEditingId(book.id);
+    setForm({
+      title: book.title,
+      author: book.author,
+      category: book.category,
+      isbn: book.isbn,
+      available: book.available,
+      color: book.color,
+    });
+    setFormError('');
+    setFormOpen(true);
+  }
+
+  function submitBook(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const cleanedForm: BookForm = {
+      ...form,
+      title: form.title.trim(),
+      author: form.author.trim(),
+      isbn: form.isbn.replace(/[\s-]/g, ''),
+    };
+
+    if (!cleanedForm.title || !cleanedForm.author) {
+      setFormError('Enter a book title and author.');
+      return;
+    }
+
+    if (!/^(?:\d{9}[\dXx]|\d{13})$/.test(cleanedForm.isbn)) {
+      setFormError('Enter a 10-character or 13-digit ISBN.');
+      return;
+    }
+
+    cleanedForm.isbn = cleanedForm.isbn.toUpperCase();
+
+    const duplicate = books.some(
+      (book) =>
+        book.id !== editingId && book.isbn === cleanedForm.isbn,
+    );
+
+    if (duplicate) {
+      setFormError('A book with this ISBN already exists.');
+      return;
+    }
+
+    const nextBooks = editingId
+      ? books.map((book) =>
+          book.id === editingId ? { ...book, ...cleanedForm } : book,
+        )
+      : [...books, { ...cleanedForm, id: crypto.randomUUID() }];
+
+    const saved = saveCollection(
+      nextBooks,
+      editingId ? 'Book updated successfully.' : 'Book added successfully.',
+    );
+
+    if (saved) {
+      clearFilters();
+      setFormOpen(false);
+    } else {
+      setFormError('The book could not be saved. Please try again.');
+    }
+  }
+
+  function deleteBook(book: Book) {
+    if (!book.available) {
+      setMessage('Return this borrowed book before deleting it.');
+      return;
+    }
+
+    if (!window.confirm(`Delete "${book.title}"?`)) return;
+
+    if (
+      saveCollection(
+        books.filter((item) => item.id !== book.id),
+        'Book deleted successfully.',
+      )
+    ) {
+      setSelectedBook(null);
+    }
+  }
+
+  const query = search.trim().toLowerCase();
 
   const filteredBooks = books.filter((book) => {
-    const query = search.trim().toLowerCase();
-
     const matchesSearch =
       book.title.toLowerCase().includes(query) ||
       book.author.toLowerCase().includes(query) ||
-      book.isbn.includes(query);
+      book.isbn.toLowerCase().includes(query);
 
     const matchesCategory =
       category === 'All' || book.category === category;
@@ -102,25 +284,30 @@ function BooksPage() {
     return matchesSearch && matchesCategory && matchesAvailability;
   });
 
-  function clearFilters() {
-    setSearch('');
-    setCategory('All');
-    setAvailability('All');
-  }
-
   return (
     <>
       <div className="page-heading">
         <div>
           <p className="eyebrow">EXPLORE YOUR COLLECTION</p>
           <h1>Book Catalogue</h1>
-          <p>Browse and find books in your library.</p>
+          <p>Manage and find books in your library.</p>
         </div>
+
+        <button className="primary-button icon-button" onClick={openAddForm}>
+          <Plus size={18} />
+          Add Book
+        </button>
       </div>
 
       <div className="demo-notice">
-        Sample collection · Book management will be added in the next step.
+        Books are saved in this browser. Dashboard figures are still sample data.
       </div>
+
+      {message && (
+        <div className="catalogue-message" role="status">
+          {message}
+        </div>
+      )}
 
       <section className="catalogue-filters" aria-label="Filter books">
         <div className="search-field">
@@ -141,9 +328,7 @@ function BooksPage() {
         >
           <option value="All">All Categories</option>
           {categories.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
+            <option key={item} value={item}>{item}</option>
           ))}
         </select>
 
@@ -159,9 +344,7 @@ function BooksPage() {
       </section>
 
       <div className="catalogue-summary">
-        <span>
-          Showing {filteredBooks.length} of {books.length} books
-        </span>
+        <span>Showing {filteredBooks.length} of {books.length} books</span>
         <button className="text-button" onClick={clearFilters}>
           Clear filters
         </button>
@@ -184,11 +367,7 @@ function BooksPage() {
                 <h2>{book.title}</h2>
                 <p className="catalogue-author">{book.author}</p>
 
-                <span
-                  className={`badge ${
-                    book.available ? 'badge-green' : 'badge-red'
-                  }`}
-                >
+                <span className={`badge ${book.available ? 'badge-green' : 'badge-red'}`}>
                   {book.available ? 'Available' : 'Borrowed'}
                 </span>
 
@@ -198,6 +377,28 @@ function BooksPage() {
                 >
                   View Details
                 </button>
+
+                <div className="book-card-actions">
+                  <button
+                    className="secondary-button icon-button"
+                    onClick={() => openEditForm(book)}
+                    aria-label={`Edit ${book.title}`}
+                  >
+                    <Pencil size={15} />
+                    Edit
+                  </button>
+
+                  <button
+                    className="danger-button icon-button"
+                    onClick={() => deleteBook(book)}
+                    disabled={!book.available}
+                    aria-label={`Delete ${book.title}`}
+                    title={!book.available ? 'Return this book before deleting it' : undefined}
+                  >
+                    <Trash2 size={15} />
+                    Delete
+                  </button>
+                </div>
               </div>
             </article>
           ))}
@@ -206,7 +407,7 @@ function BooksPage() {
         <section className="panel catalogue-empty">
           <BookOpen size={38} />
           <h2>No books found</h2>
-          <p>Try a different search or clear your filters.</p>
+          <p>Add a book or try different filters.</p>
           <button className="primary-button" onClick={clearFilters}>
             Clear Filters
           </button>
@@ -215,12 +416,8 @@ function BooksPage() {
 
       {selectedBook && (
         <dialog
+          ref={detailsRef}
           className="book-dialog"
-          ref={(dialog) => {
-            if (dialog && !dialog.open) {
-              dialog.showModal();
-            }
-          }}
           aria-labelledby="book-dialog-title"
           onCancel={() => setSelectedBook(null)}
           onClose={() => setSelectedBook(null)}
@@ -247,38 +444,131 @@ function BooksPage() {
           <h3 className="dialog-book-title">{selectedBook.title}</h3>
 
           <dl className="book-details">
-            <div>
-              <dt>Author</dt>
-              <dd>{selectedBook.author}</dd>
-            </div>
-            <div>
-              <dt>Category</dt>
-              <dd>{selectedBook.category}</dd>
-            </div>
-            <div>
-              <dt>ISBN</dt>
-              <dd>{selectedBook.isbn}</dd>
-            </div>
+            <div><dt>Author</dt><dd>{selectedBook.author}</dd></div>
+            <div><dt>Category</dt><dd>{selectedBook.category}</dd></div>
+            <div><dt>ISBN</dt><dd>{selectedBook.isbn}</dd></div>
             <div>
               <dt>Status</dt>
-              <dd>
-                <span
-                  className={`badge ${
-                    selectedBook.available ? 'badge-green' : 'badge-red'
-                  }`}
-                >
-                  {selectedBook.available ? 'Available' : 'Borrowed'}
-                </span>
-              </dd>
+              <dd>{selectedBook.available ? 'Available' : 'Borrowed'}</dd>
             </div>
           </dl>
 
           <button
             className="primary-button dialog-done"
-            onClick={() => setSelectedBook(null)}
+            onClick={() => openEditForm(selectedBook)}
           >
-            Done
+            Edit Book
           </button>
+        </dialog>
+      )}
+
+      {formOpen && (
+        <dialog
+          ref={formRef}
+          className="book-dialog"
+          aria-labelledby="book-form-title"
+          onCancel={() => setFormOpen(false)}
+          onClose={() => setFormOpen(false)}
+        >
+          <div className="dialog-heading">
+            <h2 id="book-form-title">
+              {editingId ? 'Edit Book' : 'Add Book'}
+            </h2>
+            <button
+              className="dialog-close"
+              aria-label="Close book form"
+              onClick={() => setFormOpen(false)}
+            >
+              <X size={22} />
+            </button>
+          </div>
+
+          <form className="book-form" onSubmit={submitBook}>
+            <label>
+              Book Title
+              <input
+                required
+                autoFocus
+                maxLength={150}
+                value={form.title}
+                onChange={(event) =>
+                  setForm({ ...form, title: event.target.value })
+                }
+              />
+            </label>
+
+            <label>
+              Author
+              <input
+                required
+                maxLength={150}
+                value={form.author}
+                onChange={(event) =>
+                  setForm({ ...form, author: event.target.value })
+                }
+              />
+            </label>
+
+            <label>
+              Category
+              <select
+                value={form.category}
+                onChange={(event) =>
+                  setForm({ ...form, category: event.target.value as Category })
+                }
+              >
+                {categories.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              ISBN
+              <input
+                required
+                placeholder="Example: 9780132350884"
+                maxLength={25}
+                value={form.isbn}
+                onChange={(event) =>
+                  setForm({ ...form, isbn: event.target.value })
+                }
+              />
+            </label>
+
+            <label>
+              Cover Colour
+              <input
+                type="color"
+                value={form.color}
+                onChange={(event) =>
+                  setForm({ ...form, color: event.target.value })
+                }
+              />
+            </label>
+
+            <p className="form-hint">
+              New books start as available. Borrowing and returning will
+              control availability in a later step.
+            </p>
+
+            {formError && (
+              <p className="form-error" role="alert">{formError}</p>
+            )}
+
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setFormOpen(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="primary-button">
+                {editingId ? 'Save Changes' : 'Add Book'}
+              </button>
+            </div>
+          </form>
         </dialog>
       )}
     </>
