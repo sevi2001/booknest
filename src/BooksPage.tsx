@@ -20,6 +20,7 @@ type Book = {
   isbn: string;
   available: boolean;
   color: string;
+  imageUrl?: string;
 };
 
 type BookForm = Omit<Book, 'id'>;
@@ -127,6 +128,7 @@ function emptyForm(): BookForm {
     isbn: '',
     available: true,
     color: '#dbeafe',
+     imageUrl: '',
   };
 }
 function loadBooks(): Book[] {
@@ -236,6 +238,7 @@ function BooksPage() {
       isbn: book.isbn,
       available: book.available,
       color: book.color,
+      imageUrl: book.imageUrl ?? '',
     });
     setFormError('');
     setFormOpen(true);
@@ -399,12 +402,23 @@ function BooksPage() {
         <section className="books-grid" aria-label="Book collection">
           {filteredBooks.map((book) => (
             <article className="catalogue-card" key={book.id}>
-              <div
+                            <div
                 className="catalogue-cover"
                 style={{ backgroundColor: book.color }}
               >
-                <BookOpen size={38} aria-hidden="true" />
-                <span>{book.title}</span>
+                {book.imageUrl ? (
+                  <img
+                    className="catalogue-cover-image"
+                    src={book.imageUrl}
+                    alt={`Cover of ${book.title}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <>
+                    <BookOpen size={38} aria-hidden="true" />
+                    <span>{book.title}</span>
+                  </>
+                )}
               </div>
 
               <div className="catalogue-card-body">
@@ -479,13 +493,20 @@ function BooksPage() {
             </button>
           </div>
 
-          <div
+                    <div
             className="dialog-cover"
             style={{ backgroundColor: selectedBook.color }}
           >
-            <BookOpen size={44} aria-hidden="true" />
+            {selectedBook.imageUrl ? (
+              <img
+                className="dialog-cover-image"
+                src={selectedBook.imageUrl}
+                alt={`Cover of ${selectedBook.title}`}
+              />
+            ) : (
+              <BookOpen size={44} aria-hidden="true" />
+            )}
           </div>
-
           <h3 className="dialog-book-title">{selectedBook.title}</h3>
 
           <dl className="book-details">
@@ -527,6 +548,26 @@ function BooksPage() {
               <X size={22} />
             </button>
           </div>
+
+                      <label>
+              Book Cover Image
+              <input
+                type="text"
+                placeholder="/books/atomic-habits.jpg"
+                value={form.imageUrl ?? ''}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    imageUrl: event.target.value.trim(),
+                  })
+                }
+              />
+            </label>
+
+            <p className="form-hint">
+              Put your image in public/books, then enter its path here.
+              Example: /books/atomic-habits.jpg
+            </p>
 
           <form className="book-form" onSubmit={submitBook}>
             <label>
