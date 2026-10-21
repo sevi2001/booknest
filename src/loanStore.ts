@@ -7,6 +7,7 @@ export type Loan = {
   issuedOn: string;
   dueOn: string;
   returnedOn: string | null;
+    reservationId?: string;
 };
 
 const STORAGE_KEY = 'booknest-loans-v1';
@@ -24,7 +25,9 @@ function isLoan(value: unknown): value is Loan {
     typeof loan.memberName === 'string' &&
     typeof loan.issuedOn === 'string' &&
     typeof loan.dueOn === 'string' &&
-    (loan.returnedOn === null || typeof loan.returnedOn === 'string')
+        (loan.returnedOn === null || typeof loan.returnedOn === 'string') &&
+    (loan.reservationId === undefined ||
+      typeof loan.reservationId === 'string')
   );
 }
 

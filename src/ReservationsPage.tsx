@@ -3,6 +3,11 @@ import type { FormEvent } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { readLoans, todayDate } from './loanStore';
 import type { Loan } from './loanStore';
+import {
+  readReservations,
+  RESERVATIONS_KEY,
+} from './reservationStore';
+import type { Reservation } from './reservationStore';
 
 type Book = {
   id: string;
@@ -15,16 +20,6 @@ type Member = {
   name: string;
 };
 
-type Reservation = {
-  id: string;
-  bookId: string;
-  memberId: string;
-  bookTitle: string;
-  memberName: string;
-  createdOn: string;
-  cancelled: boolean;
-};
-
 type PageData = {
   books: Book[];
   members: Member[];
@@ -33,7 +28,12 @@ type PageData = {
   error: string;
 };
 
-const STORAGE_KEY = 'booknest-reservations-v1';
+type Status =
+  | 'Cancelled'
+  | 'Completed'
+  | 'Unavailable'
+  | 'Waiting'
+  | 'Ready';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -53,19 +53,6 @@ function isMember(value: unknown): value is Member {
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.name === 'string'
-  );
-}
-
-function isReservation(value: unknown): value is Reservation {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    typeof value.bookId === 'string' &&
-    typeof value.memberId === 'string' &&
-    typeof value.bookTitle === 'string' &&
-    typeof value.memberName === 'string' &&
-    typeof value.createdOn === 'string' &&
-    typeof value.cancelled === 'boolean'
   );
 }
 
@@ -92,7 +79,7 @@ function loadData(): PageData {
       books: readList('booknest-books-v1', isBook),
       members: readList('booknest-members-v1', isMember),
       loans: readLoans(),
-      reservations: readList(STORAGE_KEY, isReservation),
+      reservations: readReservations(),
       error: '',
     };
   } catch {
@@ -115,12 +102,15 @@ function isBorrowed(book: Book, loans: Loan[]): boolean {
   );
 }
 
-type Status = 'Cancelled' | 'Unavailable' | 'Waiting' | 'Ready';
-
 function getStatus(
   reservation: Reservation,
   data: PageData,
 ): Status {
+  const completed = data.loans.some(
+    (loan) => loan.reservationId === reservation.id,
+  );
+
+  if (completed) return 'Completed';
   if (reservation.cancelled) return 'Cancelled';
 
   const book = data.books.find(
@@ -150,12 +140,26 @@ function ReservationsPage() {
 
   const visibleReservations = data.reservations.filter(
     (reservation) => {
-      if (filter === 'Active') return !reservation.cancelled;
-      if (filter === 'Cancelled') return reservation.cancelled;
+      const status = getStatus(reservation, data);
+
+      if (filter === 'Active') {
+        return status !== 'Cancelled' && status !== 'Completed';
+      }
+
+      if (filter === 'Cancelled') return status === 'Cancelled';
+      if (filter === 'Completed') return status === 'Completed';
 
       return true;
     },
   );
+
+  function refreshData() {
+    setData(loadData());
+    setBookId('');
+    setMemberId('');
+    setMessage('');
+    setError('');
+  }
 
   function save(
     fresh: PageData,
@@ -163,7 +167,11 @@ function ReservationsPage() {
     successMessage: string,
   ): boolean {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
+      localStorage.setItem(
+        RESERVATIONS_KEY,
+        JSON.stringify(reservations),
+      );
+
       setData({ ...fresh, reservations });
       setMessage(successMessage);
       return true;
@@ -179,13 +187,12 @@ function ReservationsPage() {
     setError('');
 
     const fresh = loadData();
+    setData(fresh);
 
     if (fresh.error) {
       setError(fresh.error);
       return;
     }
-
-    setData(fresh);
 
     const book = fresh.books.find((item) => item.id === bookId);
     const member = fresh.members.find((item) => item.id === memberId);
@@ -196,7 +203,9 @@ function ReservationsPage() {
     }
 
     if (!isBorrowed(book, fresh.loans)) {
-      setError('This book is available. Issue it through Borrow & Return.');
+      setError(
+        'This book is available. Issue it through Borrow & Return.',
+      );
       return;
     }
 
@@ -216,11 +225,16 @@ function ReservationsPage() {
       (reservation) =>
         !reservation.cancelled &&
         reservation.bookId === book.id &&
-        reservation.memberId === member.id,
+        reservation.memberId === member.id &&
+        !fresh.loans.some(
+          (loan) => loan.reservationId === reservation.id,
+        ),
     );
 
     if (duplicate) {
-      setError('This member already has an active reservation for this book.');
+      setError(
+        'This member already has an active reservation for this book.',
+      );
       return;
     }
 
@@ -252,6 +266,7 @@ function ReservationsPage() {
     setError('');
 
     const fresh = loadData();
+    setData(fresh);
 
     if (fresh.error) {
       setError(fresh.error);
@@ -262,8 +277,11 @@ function ReservationsPage() {
       (item) => item.id === id,
     );
 
-    if (!reservation || reservation.cancelled) {
-      setData(fresh);
+    if (
+      !reservation ||
+      reservation.cancelled ||
+      fresh.loans.some((loan) => loan.reservationId === id)
+    ) {
       setError('This reservation is no longer active.');
       return;
     }
@@ -288,19 +306,16 @@ function ReservationsPage() {
 
         <button
           className="secondary-button"
-          onClick={() => {
-            setData(loadData());
-            setMessage('');
-            setError('');
-          }}
+          onClick={refreshData}
         >
           Refresh Data
         </button>
       </div>
 
       <p className="demo-notice">
-        Ready means the book is available. Reservations currently track
-        requests; they do not hold books or enforce a borrowing queue.
+        Reservations complete when the selected member borrows the book.
+        Ready means available; reservations do not enforce a borrowing
+        queue.
       </p>
 
       {message && (
@@ -321,7 +336,10 @@ function ReservationsPage() {
           <CalendarClock size={20} />
         </div>
 
-        <form className="book-form issue-form" onSubmit={reserveBook}>
+        <form
+          className="book-form issue-form"
+          onSubmit={reserveBook}
+        >
           <label>
             Select Member
             <select
@@ -330,6 +348,7 @@ function ReservationsPage() {
               onChange={(event) => setMemberId(event.target.value)}
             >
               <option value="">Choose a member</option>
+
               {data.members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name} — {member.id.slice(0, 8)}
@@ -346,6 +365,7 @@ function ReservationsPage() {
               onChange={(event) => setBookId(event.target.value)}
             >
               <option value="">Choose a borrowed book</option>
+
               {borrowedBooks.map((book) => (
                 <option key={book.id} value={book.id}>
                   {book.title}
@@ -356,8 +376,8 @@ function ReservationsPage() {
 
           {borrowedBooks.length === 0 && (
             <p className="form-hint issue-full-width">
-              No borrowed books found. Issue a book through Borrow & Return
-              first.
+              No borrowed books found. Issue a book through Borrow &
+              Return first.
             </p>
           )}
 
@@ -393,6 +413,7 @@ function ReservationsPage() {
           >
             <option value="Active">Active</option>
             <option value="Cancelled">Cancelled</option>
+            <option value="Completed">Completed</option>
             <option value="All">All Records</option>
           </select>
         </div>
@@ -420,12 +441,25 @@ function ReservationsPage() {
                 {visibleReservations.map((reservation) => {
                   const status = getStatus(reservation, data);
 
+                  const badgeClass =
+                    status === 'Ready' || status === 'Completed'
+                      ? 'badge-green'
+                      : status === 'Waiting'
+                        ? 'badge-amber'
+                        : 'badge-grey';
+
+                  const canCancel =
+                    status !== 'Cancelled' &&
+                    status !== 'Completed';
+
                   return (
                     <tr key={reservation.id}>
                       <td className="book-title">
                         {reservation.bookTitle}
                       </td>
+
                       <td>{reservation.memberName}</td>
+
                       <td className="member-date">
                         {new Date(
                           `${reservation.createdOn}T00:00:00`,
@@ -435,21 +469,15 @@ function ReservationsPage() {
                           year: 'numeric',
                         })}
                       </td>
+
                       <td>
-                        <span
-                          className={`badge ${
-                            status === 'Ready'
-                              ? 'badge-green'
-                              : status === 'Waiting'
-                                ? 'badge-amber'
-                                : 'badge-grey'
-                          }`}
-                        >
+                        <span className={`badge ${badgeClass}`}>
                           {status}
                         </span>
                       </td>
+
                       <td>
-                        {!reservation.cancelled ? (
+                        {canCancel ? (
                           <button
                             className="danger-button"
                             onClick={() =>

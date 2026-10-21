@@ -4,6 +4,7 @@ import { ArrowLeftRight } from 'lucide-react';
 import { readLoans, saveLoans, todayDate } from './loanStore';
 import type { Loan } from './loanStore';
 import { getDefaultLoanDays } from './settingsStore';
+import { readReservations } from './reservationStore';
 
 type BookOption = {
   id: string;
@@ -171,6 +172,25 @@ function BorrowReturnPage() {
       return;
     }
 
+        let reservationId: string | undefined;
+
+    try {
+      const matchingReservation = readReservations().find(
+        (reservation) =>
+          !reservation.cancelled &&
+          reservation.bookId === book.id &&
+          reservation.memberId === member.id &&
+          !fresh.loans.some(
+            (loan) => loan.reservationId === reservation.id,
+          ),
+      );
+
+      reservationId = matchingReservation?.id;
+    } catch {
+      setError('Could not check reservations. The book was not issued.');
+      return;
+    }
+
     const loan: Loan = {
       id: crypto.randomUUID(),
       bookId: book.id,
@@ -180,6 +200,7 @@ function BorrowReturnPage() {
       issuedOn: todayDate(),
       dueOn,
       returnedOn: null,
+      reservationId,
     };
 
     const nextLoans = [loan, ...fresh.loans];
@@ -191,7 +212,11 @@ function BorrowReturnPage() {
       setMemberId('');
       setDueOn(defaultDueDate());
       setFilter('Active');
-      setMessage(`"${book.title}" issued to ${member.name}.`);
+            setMessage(
+        reservationId
+          ? `"${book.title}" issued to ${member.name}. Reservation completed.`
+          : `"${book.title}" issued to ${member.name}.`,
+      );
     } catch {
       setError('Could not save the loan. Please try again.');
     }
