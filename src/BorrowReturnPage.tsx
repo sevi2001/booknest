@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { ArrowLeftRight } from 'lucide-react';
 import { readLoans, saveLoans, todayDate } from './loanStore';
 import type { Loan } from './loanStore';
+import { getDefaultLoanDays } from './settingsStore';
 
 type BookOption = {
   id: string;
@@ -86,7 +87,7 @@ function loadPageData(): PageData {
 
 function defaultDueDate(): string {
   const date = new Date();
-  date.setDate(date.getDate() + 14);
+   date.setDate(date.getDate() + getDefaultLoanDays());
 
   return [
     date.getFullYear(),

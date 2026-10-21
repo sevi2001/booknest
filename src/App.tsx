@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import ReservationsPage from './ReservationsPage';
+import SettingsPage from './SettingsPage';
+import { defaultSettings, readSettings } from './settingsStore';
+import type { LibrarySettings } from './settingsStore';
 import {
   BookOpen,
   LayoutDashboard,
@@ -31,6 +34,13 @@ type Page = (typeof navigation)[number]['name'];
 function App() {
   const [activePage, setActivePage] = useState<Page>('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [settings, setSettings] = useState<LibrarySettings>(() => {
+    try {
+      return readSettings();
+    } catch {
+      return { ...defaultSettings };
+    }
+  });
 
   function navigate(page: Page) {
     setActivePage(page);
@@ -50,7 +60,7 @@ function App() {
       <aside className={`sidebar ${sidebarOpen ? 'is-open' : ''}`}>
         <div className="brand">
           <BookOpen size={30} />
-          <span>BookNest</span>
+                    <span className="brand-name">{settings.libraryName}</span>
 
           <button
             className="sidebar-close"
@@ -83,7 +93,7 @@ function App() {
           <BookOpen size={22} />
           <p>
             A home for every book.
-            <span>BookNest Library</span>
+                       <span>{settings.libraryName} Library</span>
           </p>
         </div>
       </aside>
@@ -127,8 +137,10 @@ function App() {
             <MembersPage />
                     ) : activePage === 'Borrow & Return' ? (
             <BorrowReturnPage />
-          ) : activePage === 'Reservations' ? (
+                   ) : activePage === 'Reservations' ? (
             <ReservationsPage />
+          ) : activePage === 'Settings' ? (
+            <SettingsPage onSettingsSaved={setSettings} />
           ) : (
             <section className="panel placeholder-page">
               <div className="placeholder-icon">

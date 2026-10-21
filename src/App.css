@@ -1022,3 +1022,26 @@ tbody tr:last-child td {
   color: #475569;
   background: #e2e8f0;
 }
+
+.settings-panel {
+  max-width: 680px;
+}
+
+.settings-form {
+  padding: 0 22px 24px;
+}
+
+.brand-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+}
+
+.brand > svg {
+  flex-shrink: 0;
+}
+
+.sidebar-footer p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
