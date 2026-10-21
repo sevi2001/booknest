@@ -1012,3 +1012,13 @@ tbody tr:last-child td {
     align-items: flex-start;
   }
 }
+
+.badge-amber {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.badge-grey {
+  color: #475569;
+  background: #e2e8f0;
+}

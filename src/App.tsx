@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ReservationsPage from './ReservationsPage';
 import {
   BookOpen,
   LayoutDashboard,
@@ -124,8 +125,10 @@ function App() {
             <BooksPage />
           ) : activePage === 'Members' ? (
             <MembersPage />
-          ) : activePage === 'Borrow & Return' ? (
+                    ) : activePage === 'Borrow & Return' ? (
             <BorrowReturnPage />
+          ) : activePage === 'Reservations' ? (
+            <ReservationsPage />
           ) : (
             <section className="panel placeholder-page">
               <div className="placeholder-icon">
