@@ -3,6 +3,7 @@ import ReservationsPage from './ReservationsPage';
 import SettingsPage from './SettingsPage';
 import { defaultSettings, readSettings } from './settingsStore';
 import type { LibrarySettings } from './settingsStore';
+import BackendStatus from './BackendStatus';
 import {
   BookOpen,
   LayoutDashboard,
@@ -126,6 +127,7 @@ function App() {
         </header>
 
         <main className="content">
+           <BackendStatus />
           {activePage === 'Dashboard' ? (
             <DashboardPage
               onOpenBooks={() => navigate('Books')}

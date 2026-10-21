@@ -1045,3 +1045,48 @@ tbody tr:last-child td {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.backend-status-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.backend-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.backend-checking {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.backend-connected {
+  color: #047857;
+  background: #dcfce7;
+}
+
+.backend-offline {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.backend-status-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
