@@ -4,6 +4,8 @@ import SettingsPage from './SettingsPage';
 import { defaultSettings, readSettings } from './settingsStore';
 import type { LibrarySettings } from './settingsStore';
 import BackendStatus from './BackendStatus';
+
+
 import {
   BookOpen,
   LayoutDashboard,
@@ -16,7 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import DashboardPage from './DashboardPage';
-import BooksPage from './BooksPage';
+import DatabaseBooksPage from './DatabaseBooksPage';
 import MembersPage from './MembersPage';
 import BorrowReturnPage from './BorrowReturnPage';
 import './App.css';
@@ -128,13 +130,14 @@ function App() {
 
         <main className="content">
            <BackendStatus />
+            
           {activePage === 'Dashboard' ? (
             <DashboardPage
               onOpenBooks={() => navigate('Books')}
               onOpenLoans={() => navigate('Borrow & Return')}
             />
           ) : activePage === 'Books' ? (
-            <BooksPage />
+                      <DatabaseBooksPage />
           ) : activePage === 'Members' ? (
             <MembersPage />
                     ) : activePage === 'Borrow & Return' ? (

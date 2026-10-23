@@ -1117,3 +1117,22 @@ tbody tr:last-child td {
   object-fit: contain;
   border-radius: 4px;
 }
+
+.database-book-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.book-isbn {
+  margin: 0 0 14px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .database-book-filters {
+    grid-template-columns: 1fr;
+  }
+}

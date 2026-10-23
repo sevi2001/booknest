@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   Users,
@@ -105,6 +105,48 @@ function DashboardPage({
   onOpenLoans,
 }: DashboardProps) {
   const [data, setData] = useState<DashboardData>(loadDashboard);
+    const [totalBooks, setTotalBooks] = useState<number | null>(null);
+  const [booksError, setBooksError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    async function loadBookTotal() {
+      try {
+        const response = await fetch('/api/books', {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          throw new Error('Could not load the book total.');
+        }
+
+        const books: unknown = await response.json();
+
+        if (!Array.isArray(books)) {
+          throw new Error('Unexpected book data.');
+        }
+
+        if (active) {
+          setTotalBooks(books.length);
+          setBooksError('');
+        }
+      } catch {
+        if (active) {
+          setBooksError('Could not load the database book total.');
+        }
+      }
+    }
+
+    void loadBookTotal();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [data]);
 
   const today = todayDate();
 
@@ -157,10 +199,9 @@ function DashboardPage({
           </button>
         </div>
       </div>
-
       <p className="demo-notice">
-        Totals use saved records in this browser. Borrowed and overdue
-        counts use loans created through Borrow & Return.
+        Total Books uses PostgreSQL. Members, loans, and borrowing
+        history still use browser storage until we migrate them.
       </p>
 
       {data.error ? (
@@ -175,8 +216,16 @@ function DashboardPage({
                 <span>Total Books</span>
                 <BookOpen size={22} />
               </div>
-              <strong>{data.books.length.toLocaleString()}</strong>
-              <p>Saved book records</p>
+                           <strong>
+                {booksError
+                  ? '—'
+                  : totalBooks === null
+                    ? '…'
+                    : totalBooks.toLocaleString()}
+              </strong>
+              <p>
+                {booksError || 'Books saved in PostgreSQL'}
+              </p>
             </article>
 
             <article className="stat-card blue">

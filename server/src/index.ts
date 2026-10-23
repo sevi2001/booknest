@@ -1,7 +1,7 @@
 import express from 'express';
 import { pool } from './db.js';
 import booksRoutes from './booksRoutes.js';
-
+import membersRoutes from './membersRoutes.js';
 
 const app = express();
 const port = 4000;
@@ -10,6 +10,7 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '1mb' }));
 
 app.use('/api/books', booksRoutes);
+app.use('/api/members', membersRoutes);
 
 app.get('/', (_request, response) => {
   response.json({
